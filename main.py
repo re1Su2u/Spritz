@@ -9,7 +9,7 @@ from PIL import Image, ImageEnhance, ImageTk
 iniFile=configparser.ConfigParser()
 iniFile.read('resources/appConfig.ini', 'UTF-8')
 
-# path setting
+# Path setting
 # TESSERACT_PATH = iniFile.get('env', 'TESSERACT_PATH')
 # TESSDATA_PATH = iniFile.get('env', 'TESSDATA_PATH')
 TESSERACT_PATH = 'C:\Program Files\Tesseract-OCR'
@@ -25,14 +25,14 @@ tool = tools[0]
 # OCR setting
 builder = pyocr.builders.TextBuilder(tesseract_layout=6)
 
-RESIZE_RATIO = 1 #reduction ratio regulation
+RESIZE_RATIO = 1 # Reduction ratio regulation
 
-# event when starting drag
+# Event when starting drag
 def start_point_get(event):
-    global start_x, start_y # declare for writing global variables
-    canvas1.delete('rect1') # delete if 'rect1' already exists
+    global start_x, start_y # Declare for writing global variables
+    canvas1.delete('rect1') # Delete if 'rect1' already exists
 
-    # draw a rectangle on canvas1
+    # Draw a rectangle on canvas1
     canvas1.create_rectangle(event.x,
                             event.y,
                             event.x + 1,
@@ -40,13 +40,13 @@ def start_point_get(event):
                             outline='red',
                             tag='rect1')
     
-    # store coordinate into global variables
+    # Store coordinate into global variables
     start_x, start_y = event.x, event.y
 
 
-# event while dragging
+# Event while dragging
 def rect_drawing(event):
-    # if cursor goes out of range while dragging
+    # If cursor goes out of range while dragging
     if event.x < 0:
         end_x = 0
     else:
@@ -57,13 +57,13 @@ def rect_drawing(event):
     else:
         end_y = min(img_resized.height, event.y)
 
-    # redraw rect1 
+    # Redraw rect1 
     canvas1.coords('rect1', start_x, start_y, end_x, end_y)
 
 
-# event when releasing
+# Event when releasing
 def release_action(event):
-    # obtain rect1's coordinate reverted scale
+    # Obtain rect1's coordinate reverted scale
     start_x, start_y, end_x, end_y = [
         round(n * RESIZE_RATIO) for n in canvas1.coords('rect1')
     ]
@@ -71,99 +71,84 @@ def release_action(event):
     cropImag = img.crop(box=(start_x, start_y, end_x, end_y))
 
     nowDate=datetime.now().strftime('%Y%m%d')
-    fileName=datetime.now().strftime('%Y%m%d%H%M%S')
     currentDirectory=os.getcwd()
-    workDir=os.path.join(currentDirectory, nowDate)
     tempDir=os.path.join(currentDirectory, nowDate, 'tmp')
     os.makedirs(tempDir, exist_ok=True)
-    # image file name
+    # Image file name
     pngFileName=os.path.join(tempDir, nowDate+'.png')
 
-    # save image
+    # Save image
     cropImag.save(pngFileName)
-    # open image
+    # Open image
     reading = Image.open(pngFileName)
 
-    # image processing
+    # Image processing
     img_g = reading.convert('L') # Gray convertion
-    enhancer = ImageEnhance.Contrast(img_g) # increase contrast
-    img_con = enhancer.enhance(2.0) # increase contrast
+    enhancer = ImageEnhance.Contrast(img_g) # Increase contrast
+    img_con = enhancer.enhance(2.0) # Increase contrast
 
-    lan = pyautogui.confirm(text='Which langauage?', title="Language Select", buttons=['EN', 'JP'])
+    lang = pyautogui.confirm(text='Which langauage?', title="Language Select", buttons=['EN', 'JP'])
 
     readText = tool.image_to_string(img_con, lang='eng', builder=builder)
     list = readText.split(' ')
 
-    pyautogui.alert(list[0])
-
-    if lan == 'JP':
-        # read japanese texts on image by OCR, then extract as string
+    if lang == 'JP':
+        # Read japanese texts on image by OCR, then extract as strings
         readText = tool.image_to_string(img_con, lang='jpn', builder=builder)
-        # delete half space 
+        # Delete half space 
         readText = readText.replace(' ', '')
 
-    # print("This is a text => \n"+readText)
-
-    # copy on clipboard
+    # Copy on clipboard
     root.clipboard_append(readText)
 
-    # output as text file  (separate into Japasene and English)
-    # textFileJp=os.path.join(workDir, fileName+'jp.txt')
-    # textFileEn=os.path.join(workDir, fileName+'.txt')
-    # with open(textFileJp, mode='w') as f:
-    #     f.write(readText)
-
-    # with open(textFileEn, mode='w') as f:
-    #     f.write(readText)
-
-    # display on dialog
-    # pyautogui.alert(readText)
-
+    # Diplay strings by spritz
     display_spritz(list)
 
-
+# Extract and show strings on dialog
 def display_spritz(list):
     for i in range(len(list)):
         pyautogui.alert(list[i])
 
 
-# main process
+# Main process
 if __name__ == '__main__':
     cntloop = 0
-    if cntloop == 0:
-        pyautogui.alert(text='Ready to read?', title='', button='OK')
+    pyautogui.alert(cntloop)
 
-    # obtain screenshot from main display
+    if cntloop == 0:
+        pyautogui.alert(text='Start to read?', title='', button='OK')
+
+    # Obtain screenshot from main display
     img = pyautogui.screenshot()
-    # resize image
+    # Resize image
     img_resized = img.resize(size=(int(img.width / RESIZE_RATIO),
                                     int(img.height / RESIZE_RATIO)),
                             resample=Image.BILINEAR)
     
     root = tkinter.Tk()
-    # always display tkinter window at topmost
+    # Always display tkinter window at topmost
     # root.attributes('-topmost', True) 
 
-    # convert image for tkinter
+    # Convert image for tkinter
     img_tk = ImageTk.PhotoImage(img_resized)
 
-    # draw Canvas widget
+    # Draw Canvas widget
     canvas1 = tkinter.Canvas(root,
                             bg='black',
                             width=img_resized.width,
                             height=img_resized.height)
     
-    # draw image obtained in Canvas widget
+    # Draw image obtained in Canvas widget
     canvas1.create_image(0, 0, image=img_tk, anchor=tkinter.NW)
 
-    # set events 
+    # Set events 
     canvas1.pack()
     canvas1.bind('<ButtonPress-1>', start_point_get)
     canvas1.bind('<Button1-Motion>', rect_drawing)
     canvas1.bind('<ButtonRelease-1>', release_action)
-    cntloop += 1
+    cntloop+=1
     
     if cntloop > 0:
-        loop = pyautogui.confirm(text='One more?', title='', buttons=['Yes', 'No'])
+        loop = pyautogui.confirm(text='Continue?', title='', buttons=['Yes', 'No'])
         if loop == 'Yes':
             root.mainloop()

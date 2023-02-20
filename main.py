@@ -99,7 +99,7 @@ def release_action(event):
         readText = readText.replace(' ', '')
 
     # Copy on clipboard
-    root.clipboard_append(readText)
+    # root.clipboard_append(readText)
 
     # Diplay strings by spritz
     display_spritz(list)
@@ -112,11 +112,19 @@ def display_spritz(list):
 
 # Main process
 if __name__ == '__main__':
-    cntloop = 0
-    pyautogui.alert(cntloop)
+    checkloop = 0
 
-    if cntloop == 0:
+    if checkloop == 0:
         pyautogui.alert(text='Start to read?', title='', button='OK')
+
+    root = tkinter.Tk()
+    # Always display tkinter window at topmost
+    # root.attributes('-topmost', True) 
+    
+    if checkloop > 0:
+        loop = pyautogui.confirm(text='Continue?', title='', buttons=['Yes', 'No'])
+        if loop == 'No':
+            root.quit()
 
     # Obtain screenshot from main display
     img = pyautogui.screenshot()
@@ -124,10 +132,6 @@ if __name__ == '__main__':
     img_resized = img.resize(size=(int(img.width / RESIZE_RATIO),
                                     int(img.height / RESIZE_RATIO)),
                             resample=Image.BILINEAR)
-    
-    root = tkinter.Tk()
-    # Always display tkinter window at topmost
-    # root.attributes('-topmost', True) 
 
     # Convert image for tkinter
     img_tk = ImageTk.PhotoImage(img_resized)
@@ -141,14 +145,13 @@ if __name__ == '__main__':
     # Draw image obtained in Canvas widget
     canvas1.create_image(0, 0, image=img_tk, anchor=tkinter.NW)
 
+
     # Set events 
     canvas1.pack()
     canvas1.bind('<ButtonPress-1>', start_point_get)
     canvas1.bind('<Button1-Motion>', rect_drawing)
     canvas1.bind('<ButtonRelease-1>', release_action)
-    cntloop+=1
-    
-    if cntloop > 0:
-        loop = pyautogui.confirm(text='Continue?', title='', buttons=['Yes', 'No'])
-        if loop == 'Yes':
-            root.mainloop()
+    print(checkloop)
+
+    checkloop+=1
+    root.mainloop()

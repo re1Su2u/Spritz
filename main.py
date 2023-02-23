@@ -18,7 +18,7 @@ TESSDATA_PATH = 'C:\Program Files\Tesseract-OCR\\tessdata'
 os.environ['PATH'] += os.pathsep + TESSERACT_PATH
 os.environ['TESSDATA_PREFIX'] = TESSDATA_PATH
 
-# OCR obtained
+# OCR obtaining
 tools = pyocr.get_available_tools()
 tool = tools[0]
 
@@ -27,7 +27,9 @@ builder = pyocr.builders.TextBuilder(tesseract_layout=6)
 
 RESIZE_RATIO = 1 # Reduction ratio regulation
 
-# Event when starting drag
+start_flag = False
+
+# Event when starting to drag
 def start_point_get(event):
     global start_x, start_y # Declare for writing global variables
     canvas1.delete('rect1') # Delete if 'rect1' already exists
@@ -40,13 +42,13 @@ def start_point_get(event):
                             outline='red',
                             tag='rect1')
     
-    # Store coordinate into global variables
+    # Store coordinates into global variables
     start_x, start_y = event.x, event.y
 
 
 # Event while dragging
 def rect_drawing(event):
-    # If cursor goes out of range while dragging
+    # If a cursor goes out of range while dragging
     if event.x < 0:
         end_x = 0
     else:
@@ -63,95 +65,107 @@ def rect_drawing(event):
 
 # Event when releasing
 def release_action(event):
-    # Obtain rect1's coordinate reverted scale
+    # Obtain a rect1's coordinate reverted scale
     start_x, start_y, end_x, end_y = [
         round(n * RESIZE_RATIO) for n in canvas1.coords('rect1')
     ]
 
     cropImag = img.crop(box=(start_x, start_y, end_x, end_y))
 
-    nowDate=datetime.now().strftime('%Y%m%d')
-    currentDirectory=os.getcwd()
-    tempDir=os.path.join(currentDirectory, nowDate, 'tmp')
-    os.makedirs(tempDir, exist_ok=True)
+    now_date=datetime.now().strftime('%Y%m%d')
+    current_dir=os.getcwd()
+    tmp_dir=os.path.join(current_dir, now_date, 'tmp')
+    os.makedirs(tmp_dir, exist_ok=True)
     # Image file name
-    pngFileName=os.path.join(tempDir, nowDate+'.png')
+    png_file_name=os.path.join(tmp_dir, now_date+'.png')
 
-    # Save image
-    cropImag.save(pngFileName)
-    # Open image
-    reading = Image.open(pngFileName)
+    # Save an image
+    cropImag.save(png_file_name)
+    # Open an image
+    reading = Image.open(png_file_name)
 
     # Image processing
     img_g = reading.convert('L') # Gray convertion
     enhancer = ImageEnhance.Contrast(img_g) # Increase contrast
     img_con = enhancer.enhance(2.0) # Increase contrast
 
-    lang = pyautogui.confirm(text='Which langauage?', title="Language Select", buttons=['EN', 'JP'])
-
     readText = tool.image_to_string(img_con, lang='eng', builder=builder)
     list = readText.split(' ')
+
+    # Select language
+    lang = pyautogui.confirm(text='Which langauage will you read?', title="Language Select", buttons=['EN', 'JP'])
 
     if lang == 'JP':
         # Read japanese texts on image by OCR, then extract as strings
         readText = tool.image_to_string(img_con, lang='jpn', builder=builder)
-        # Delete half space 
+        # Delete half spaces
         readText = readText.replace(' ', '')
 
     # Copy on clipboard
-    # root.clipboard_append(readText)
+    # tk_main.clipboard_append(readText)
 
     # Diplay strings by spritz
     display_spritz(list)
 
+    continue_flg = pyautogui.confirm(text="Next?", title="Continue confirm", buttons=["Yes", "No"])
+
+    if continue_flg == "No":
+        tk_main.quit()
+
 # Extract and show strings on dialog
 def display_spritz(list):
+    tk_sub = tkinter.Tk()
+    canvas2 = tkinter.Canvas(tk_sub,
+                            # bg="white",
+                            width=100,
+                            height=100)
+    canvas2.pack()
+    string = tkinter.Label(canvas2, text="", fg="black", anchor=tkinter.CENTER)
+    string.pack()
+
     for i in range(len(list)):
-        pyautogui.alert(list[i])
+        # pyautogui.alert(list[i])
+        string.config(text=list[i])
+        string.pack()
+        tk_sub.after(100)
+
 
 
 # Main process
 if __name__ == '__main__':
-    checkloop = 0
+    count_loop = 0
 
-    if checkloop == 0:
-        pyautogui.alert(text='Start to read?', title='', button='OK')
+    pyautogui.alert(text='Choose the window to screenshot, then press "OK"', title='Window Select', button='OK')
 
-    root = tkinter.Tk()
-    # Always display tkinter window at topmost
-    # root.attributes('-topmost', True) 
-    
-    if checkloop > 0:
-        loop = pyautogui.confirm(text='Continue?', title='', buttons=['Yes', 'No'])
-        if loop == 'No':
-            root.quit()
+    # Create a main window instance
+    tk_main = tkinter.Tk()
+    # Always display a tkinter window at topmost
+    # tk_main.attributes('-topmost', True) 
 
-    # Obtain screenshot from main display
+    # Obtain a screenshot from main display
     img = pyautogui.screenshot()
-    # Resize image
+    # Resize an image
     img_resized = img.resize(size=(int(img.width / RESIZE_RATIO),
                                     int(img.height / RESIZE_RATIO)),
                             resample=Image.BILINEAR)
 
-    # Convert image for tkinter
+    # Convert an image for tkinter
     img_tk = ImageTk.PhotoImage(img_resized)
 
-    # Draw Canvas widget
-    canvas1 = tkinter.Canvas(root,
+    # Draw a canvas widget
+    canvas1 = tkinter.Canvas(tk_main,
                             bg='black',
                             width=img_resized.width,
                             height=img_resized.height)
     
-    # Draw image obtained in Canvas widget
+    # Draw an image obtained in Canvas widget
     canvas1.create_image(0, 0, image=img_tk, anchor=tkinter.NW)
-
 
     # Set events 
     canvas1.pack()
     canvas1.bind('<ButtonPress-1>', start_point_get)
     canvas1.bind('<Button1-Motion>', rect_drawing)
     canvas1.bind('<ButtonRelease-1>', release_action)
-    print(checkloop)
 
-    checkloop+=1
-    root.mainloop()
+    count_loop+=1
+    tk_main.mainloop()
